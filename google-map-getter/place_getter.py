@@ -32,12 +32,15 @@ def transfer_dict(ret_dict, response_list):
         ret_dict[key] = value
 
 
-def get_place_data(api_key, cur_location, radius, find_type):
+async def get_place_data(api_key, cur_location, radius, find_type):
     ret_dict = dict()
     next_page_token = -1
-    with get_gmaps_client(api_key) as client:
 
+    with get_gmaps_client(api_key) as client:
         while next_page_token is not None:
+            await asyncio.sleep(2)
+            # {'html_attributions': [], 'results': [], 'status': 'ZERO_RESULTS'}
+            # {'html_attributions': [], 'results': [dict1, dict2, ...], 'status': 'OK'}
             if next_page_token == -1:
                 result_dict = client.places_nearby(
                     location=cur_location,
@@ -52,12 +55,61 @@ def get_place_data(api_key, cur_location, radius, find_type):
             # result_dict : dict
             # result_dict['results'] : [dict, dict, dict, ...]
             response_list = result_dict['results']
+            # TODO : status ok
             transfer_dict(ret_dict, response_list)
 
             next_page_token = None if 'next_page_token' not in result_dict else result_dict['next_page_token']
-            print('here')
+            print('KKKK')
+
 
     return ret_dict
+
+
+async def place_getter_main_async(api_key, position_list):
+
+    result_dict = dict()
+
+    radius = RADIUS
+    find_type = FIND_TYPE
+
+    loop = asyncio.get_running_loop()
+
+    # asyncio.create_task(get_place_data(api_key, ))
+
+    tasks = [asyncio.create_task(get_place_data(
+        api_key, cur_location, radius, find_type)) for cur_location in position_list]
+        # None,
+        # get_place_data,
+        # api_key,
+        # cur_location,
+        # radius,
+        # find_type) for cur_location in position_list]
+
+    await asyncio.sleep(1)
+
+    results = [await t async for t in tasks]
+    # for t in tasks:
+    #     r = await t
+    #     print(r)
+        # print(loop.run_until_complete(t))
+
+
+    # for f in futures:
+    #     loop.run_until_complete(f)
+    #     # await f
+    #
+    # group = asyncio.gather(*futures, return_exceptions=True)
+    # for t in futures:
+    #     r = loop.run_until_complete(t)
+    # response = loop.run_until_complete(futures)
+
+
+    # for partial_result in response:
+    #     for key, value in partial_result:
+    #         result_dict[key] = value
+
+    return result_dict
+
 
 
 def place_getter_main(api_key, position_list):
